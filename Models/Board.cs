@@ -17,6 +17,8 @@ namespace Traffic.Models
 
         public static readonly Position finishPoint = new Position(2, 4);
         public int FinishRow { get => finishPoint.Row; }
+        public int Rows { get => size; }
+        public int Columns { get => size; }
 
         private Car[,] board;
         protected Car[] cars;
@@ -30,9 +32,6 @@ namespace Traffic.Models
             random = new Random();
             InitCars();
         }
-
-        public int Rows { get => size; }
-        public int Columns { get => size; }
 
         public int? this[int i, int j]
         {
@@ -105,7 +104,7 @@ namespace Traffic.Models
         public void RandomMove()
         {
             int car = random.Next(cars.Length);
-            cars[car].Move();
+            cars[car].RandomMove();
         }
 
         private void InitCars()
@@ -124,6 +123,92 @@ namespace Traffic.Models
                 cars[i] = new Car(length, orientation, nextCarId++, this);
             }
         }
+
+        private int[,] GetMatrixRepresentation()
+        {
+            int[,] matrix = new int[Rows, Columns];
+            int[] carNumber = new int[Cars.Length];
+            for (int i = 0; i < carNumber.Length; i++)
+                carNumber[i] = -1;
+
+            int nextCarNumber = 0;
+            for(int i = 0; i < Rows; i++)
+            {
+                for(int j = 0; j < Columns; j++)
+                {
+                    if (board[i, j] is null)
+                        matrix[i, j] = -1;
+                    else
+                    {
+                        if (carNumber[board[i, j].Id] == -1)
+                            carNumber[board[i, j].Id] = nextCarNumber++;
+                        matrix[i, j] = carNumber[board[i, j].Id];
+                    }
+                }
+            }
+
+            return matrix;
+        }
+
+        public bool Shuffle(int maxDepth)
+        {
+            return Shuffle(maxDepth, 0, new Stack<int[,]>());
+        }
+
+        private bool Shuffle(int maxDepth, int currentDepth, Stack<int[,]> prevBoardMatrices)
+        {
+            if (currentDepth >= maxDepth)
+                return true;
+
+            foreach (int[,] prevBoard in prevBoardMatrices)
+                if (this == prevBoard)
+                    return false;
+
+            prevBoardMatrices.Push(GetMatrixRepresentation());
+            foreach(Car car in cars)
+            {
+                Position[] positions = car.GetAvailablePosToMove();
+                foreach (Position position in positions)
+                {
+                    Position prevPos = car.Position;
+                    car.Move(position);
+                    if (Shuffle(maxDepth, currentDepth + 1, prevBoardMatrices))
+                        return true;
+                    car.Move(prevPos);
+                }
+            }
+
+            return false;
+        }
+
+        public override bool Equals(object? otherMatrix)
+        {
+            if (otherMatrix is not int[,] matrix || Rows != matrix.GetLength(0) || Columns != matrix.GetLength(1))
+                return false;
+
+            int[,] thisMatrix = GetMatrixRepresentation();
+            for (int i = 0; i < Rows; i++)
+                for (int j = 0; j < Columns; j++)
+                    if (thisMatrix[i, j] != matrix[i, j])
+                        return false;
+
+            return true;
+        }
+
+        public static bool operator ==(Board? left, int[,]? right)
+        {
+            if (left is null || right is null)
+                return false;
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(Board? left, int[,]? right) => !(left == right);
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
 
         /*public void Print()
         {
@@ -292,7 +377,7 @@ namespace Traffic.Models
         //    return result;
         //}
 
-        /*public int Solve()
+        public int Solve()
         {
             bool[] toMove = new bool[cars.Length];
             for (int i = 0; i < toMove.Length; i++)
@@ -316,19 +401,19 @@ namespace Traffic.Models
             if (depth > maxDepth)
                 return int.MaxValue;
 
-            if (cars[0].Position.X == 4)
+            if (cars[0].Position.Column == finishPoint.Column)
                 return depth;
 
-            Point[] availablePosForSpecialCar = cars[0].GetAvailablePosToMove();
+            Position[] availablePosForSpecialCar = cars[0].GetAvailablePosToMove();
             for (int i = 0; i < availablePosForSpecialCar.Length; i++)
-                if (availablePosForSpecialCar[i].X == 4)
+                if (availablePosForSpecialCar[i].Column == finishPoint.Column)
                     return depth + 1;
 
             bool[] oldToMove = new bool[toMove.Length];
             for (int i = 0; i < toMove.Length; i++)
                 oldToMove[i] = toMove[i];
 
-            Point[][] availablePos = GetAvailablePosForEachCar();
+            Position[][] availablePos = GetAvailablePosForEachCar();
             int result = int.MaxValue;
             for (int i = 0; i < cars.Length; i++)
             {
@@ -337,11 +422,11 @@ namespace Traffic.Models
 
                 for (int j = 0; j < availablePos[i].Length; j++)
                 {
-                    Point oldPos = cars[i].Position;
+                    Position oldPos = cars[i].Position;
 
                     cars[i].Move(availablePos[i][j]);
 
-                    Point[][] newAvailablePos = GetAvailablePosForEachCar();
+                    Position[][] newAvailablePos = GetAvailablePosForEachCar();
                     for (int k = 0; k < cars.Length; k++)
                         if (newAvailablePos[k].Length > availablePos[k].Length)
                             toMove[k] = true;
@@ -350,24 +435,24 @@ namespace Traffic.Models
                     {
                         if (cars[i].Orientation == Orientation.Horizontal)
                         {
-                            int diff = cars[i].Position.X - oldPos.X;
+                            int diff = cars[i].Position.Row - oldPos.Row;
                             for (int k = shortCarLength; k < diff; k++)
-                                foreach (int car in GetCarsPassed(new Point(oldPos.X + k, oldPos.Y), Orientation.Horizontal))
+                                foreach (int car in GetCarsPassed(new Position(oldPos.Row + k, oldPos.Column), Orientation.Horizontal))
                                     toMove[car] = true;
 
                             for (int k = -1; k > diff + 1; k--)
-                                foreach (int car in GetCarsPassed(new Point(oldPos.X + k, oldPos.Y), Orientation.Horizontal))
+                                foreach (int car in GetCarsPassed(new Position(oldPos.Row + k, oldPos.Column), Orientation.Horizontal))
                                     toMove[car] = true;
                         }
                         else
                         {
-                            int diff = cars[i].Position.Y - oldPos.Y;
+                            int diff = cars[i].Position.Column - oldPos.Column;
                             for (int k = shortCarLength; k < diff; k++)
-                                foreach (int car in GetCarsPassed(new Point(oldPos.X, oldPos.Y + k), Orientation.Vertical))
+                                foreach (int car in GetCarsPassed(new Position(oldPos.Row, oldPos.Column + k), Orientation.Vertical))
                                     toMove[car] = true;
 
                             for (int k = -1; k > diff + 1; k--)
-                                foreach (int car in GetCarsPassed(new Point(oldPos.X, oldPos.Y + k), Orientation.Vertical))
+                                foreach (int car in GetCarsPassed(new Position(oldPos.Row, oldPos.Column + k), Orientation.Vertical))
                                     toMove[car] = true;
                         }
                     }
@@ -387,38 +472,38 @@ namespace Traffic.Models
             return result;
         }
 
-        private List<int> GetCarsPassed(Point position, Orientation orientation)
+        private List<int> GetCarsPassed(Position position, Orientation orientation)
         {
-            if(!IsFree(position.X, position.Y))
+            if(!IsFree(position.Row, position.Column))
                 return new List<int>();
 
             List<int> result = new List<int>();
-            Point currentPos = position;
+            Position currentPos = position;
             if(orientation == Orientation.Horizontal)
             {
-                while (IsFree(currentPos.X, currentPos.Y))
-                    currentPos.Y++;
-                if (currentPos.Y < size)
-                    result.Add(GetCarIndex(board[currentPos.X, currentPos.Y]));
+                while (IsFree(currentPos.Row, currentPos.Column))
+                    currentPos.Column++;
+                if (currentPos.Column < size)
+                    result.Add(GetCarIndex(board[currentPos.Row, currentPos.Column]));
 
                 currentPos = position;
-                while (IsFree(currentPos.X, currentPos.Y))
-                    currentPos.Y--;
-                if (currentPos.Y >= 0)
-                    result.Add(GetCarIndex(board[currentPos.X, currentPos.Y]));
+                while (IsFree(currentPos.Row, currentPos.Column))
+                    currentPos.Column--;
+                if (currentPos.Column >= 0)
+                    result.Add(GetCarIndex(board[currentPos.Row, currentPos.Column]));
             }
             else
             {
-                while (IsFree(currentPos.X, currentPos.Y))
-                    currentPos.X++;
-                if (currentPos.X < size)
-                    result.Add(GetCarIndex(board[currentPos.X, currentPos.Y]));
+                while (IsFree(currentPos.Row, currentPos.Column))
+                    currentPos.Row++;
+                if (currentPos.Row < size)
+                    result.Add(GetCarIndex(board[currentPos.Row, currentPos.Column]));
 
                 currentPos = position;
-                while (IsFree(currentPos.X, currentPos.Y))
-                    currentPos.X--;
-                if (currentPos.X >= 0)
-                    result.Add(GetCarIndex(board[currentPos.X, currentPos.Y]));
+                while (IsFree(currentPos.Row, currentPos.Column))
+                    currentPos.Row--;
+                if (currentPos.Row >= 0)
+                    result.Add(GetCarIndex(board[currentPos.Row, currentPos.Column]));
             }
             return result;
         }
@@ -431,15 +516,15 @@ namespace Traffic.Models
             return i;
         }
 
-        private Point[][] GetAvailablePosForEachCar()
+        private Position[][] GetAvailablePosForEachCar()
         {
-            Point[][] availablePos;
-            availablePos = new Point[cars.Length][];
+            Position[][] availablePos;
+            availablePos = new Position[cars.Length][];
             for (int i = 0; i < cars.Length; i++)
                 availablePos[i] = cars[i].GetAvailablePosToMove();
 
             return availablePos;
-        }*/
+        }
     }
 
     public class ConfigurableBoard : Board

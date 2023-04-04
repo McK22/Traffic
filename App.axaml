@@ -6,7 +6,8 @@
         <local:ViewLocator/>
     </Application.DataTemplates>
 
-    <Application.Styles>
-        <FluentTheme Mode="Light"/>
-    </Application.Styles>
+	<Application.Styles>
+		<FluentTheme Mode="Light"/>
+		<StyleInclude Source="avares://Traffic/Icons.axaml" />
+	</Application.Styles>
 </Application>

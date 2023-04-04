@@ -18,6 +18,11 @@ namespace Traffic.Models
             return board;
         }
 
+        public static Board CreateLevel(int width, int height, int carCount, int movesToSolve)
+        {
+            return BoardCreator.CreateBoard(width, height, carCount, movesToSolve);
+        }
+
         public static void SerializeBoard(Board board)
         {
             //Create saves directory if doesn't exist
@@ -25,7 +30,14 @@ namespace Traffic.Models
                 Directory.CreateDirectory(savesPath);
 
             //Set the save file name
-            string fileName = DateTime.Now.ToString().Replace('.', '-').Replace(':', ';') + ".txt";
+            string fileName = DateTime.Now.Year.ToString() + '-';
+            if (DateTime.Now.Month < 10)
+                fileName += '0';
+            fileName += DateTime.Now.Month.ToString() + '-';
+            if (DateTime.Now.Day < 10)
+                fileName += '0';
+            fileName += DateTime.Now.Day.ToString() + ' ';
+            fileName += DateTime.Now.TimeOfDay.ToString().Substring(0, DateTime.Now.TimeOfDay.ToString().IndexOf('.')).Replace(':', ';') + ".txt";
             string path = Path.Combine(savesPath, fileName);
 
             XmlSerializer xmlSerializer = new XmlSerializer(typeof(BoardWrapper));

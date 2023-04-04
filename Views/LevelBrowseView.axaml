@@ -12,7 +12,7 @@
 			
 			<Button Content="Add new levels"
 					Width="120"
-					Command="{Binding GenerateLevels}"
+					Command="{Binding GenerateLevelsAsync}"
 					Margin="0 0 0 10"
 					/>
 			
@@ -20,6 +20,7 @@
 					Width="120"
 					Command="{Binding StartLevelCommand}"
 					Margin="0 10 0 0"
+					IsEnabled="{Binding StartingLevelPossible}"
 					/>
 			
 		</StackPanel>

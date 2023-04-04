@@ -44,7 +44,7 @@ namespace Traffic.Models
             TakeBoardCells();
         }
 
-        public void Move()
+        public void RandomMove()
         {
             Position[] availablePos = GetAvailablePosToMove();
             if (availablePos.Length == 0)
@@ -127,9 +127,9 @@ namespace Traffic.Models
                     row--;
                 }
                 row = position.Row + 1;
-                while(board.IsFree(row, position.Column + Length - 1))
+                while(board.IsFree(row + Length - 1, position.Column))
                 {
-                    availablePos.Add(new Position(row, position.Column + Length - 1));
+                    availablePos.Add(new Position(row, position.Column));
                     row++;
                 }
             }

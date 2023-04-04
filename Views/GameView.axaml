@@ -7,6 +7,12 @@
 
 	<Panel>
 		<ContentControl Content="{Binding BoardCanvas}"/>
+		<Button Margin="10"
+				HorizontalAlignment="Left"
+				VerticalAlignment="Top"
+				Command="{Binding ReturnToLevelBrowserCommand}">
+			<PathIcon Data="{StaticResource caret_left_regular}"/>
+		</Button>
 	</Panel>
 	
 </UserControl>

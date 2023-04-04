@@ -18,35 +18,66 @@ namespace Traffic.ViewModels.BoardObjects
 {
     internal class BoardCanvas : Canvas
     {
-        private readonly double tileSize = 70;
-        private readonly double margin = 5;
         private readonly int rows = 6;
         private readonly int columns = 6;
         private readonly IBrush borderFill = Brushes.Gray;
-        private readonly int carCount = 10;
         private readonly IBrush[] colors = new IBrush[] { Brushes.Pink, Brushes.LightBlue, Brushes.LightCyan, Brushes.Lime, Brushes.Navy, Brushes.Orange, Brushes.Salmon,
                                                           Brushes.SaddleBrown, Brushes.Olive, Brushes.SeaGreen };
+
+        private const double marginScale = 0.05;
+
+        private double tileSize;
+        private double margin;
+
+        private Board? board = null;
 
         public double TileSize { get => tileSize; }
         public double BorderThickness { get => margin; }
         public int Columns { get => columns; }
 
-        private Board board;
-
-        public BoardCanvas(double tileSize, Board board)
+        public Board? Board 
         {
-            this.tileSize = tileSize;
-            margin = 0.05 * tileSize;
-            this.board = board;
-            DrawBoard();
-            DrawCars();
+            get => board;
+            set
+            {
+                board = value;
+                tileSize = (Width - 1) / (board!.Columns * (marginScale + 1));
+                margin = marginScale * tileSize;
+                Draw();
+            }
         }
 
-        public Board Board { get => board; }
+        public BoardCanvas(double width, double height)
+        {
+            Width = width;
+            Height = height;
+        }
 
         public Point GetTileUpperLeftCorner(int row, int column)
         {
             return new Point(BorderThickness + (TileSize + BorderThickness) * column, BorderThickness + (TileSize + BorderThickness) * row);
+        }
+
+        public void Draw()
+        {
+            if(board is null)
+            {
+                Background = Brushes.Blue;
+                Label label = new()
+                {
+                    Foreground = Brushes.White,
+                    Content = "Pending...",
+                    FontSize = 10
+                };
+                SetTop(label, 10);
+                Children.Add(label);
+            }
+            else
+            {
+                Children.Clear();
+                DrawBoard();
+                DrawCars();
+            }
         }
 
         private void DrawBoard()
@@ -69,38 +100,44 @@ namespace Traffic.ViewModels.BoardObjects
             //create vertical lines
             for(int i = 0; i < columns; i++)
             {
-                Rectangle rect = new Rectangle();
-                rect.Width = margin;
-                rect.Height = Height;
-                rect.Fill = borderFill;
+                Rectangle rect = new()
+                {
+                    Width = margin,
+                    Height = Height,
+                    Fill = borderFill
+                };
                 SetLeft(rect, (margin + tileSize) * i);
                 Children.Add(rect);
             }
 
             //create last vertical line with a hole
             {
-                Rectangle rect = new Rectangle();
-                rect.Width = BorderThickness;
-                rect.Height = BorderThickness + (tileSize + BorderThickness) * board.FinishRow;
-                rect.Fill = borderFill;
+                Rectangle rect = new()
+                {
+                    Width = BorderThickness,
+                    Height = BorderThickness + (tileSize + BorderThickness) * Board!.FinishRow,
+                    Fill = borderFill
+                };
                 SetLeft(rect, (margin + tileSize) * columns);
                 Children.Add(rect);
 
-                rect = new Rectangle();
-                rect.Width = BorderThickness;
-                rect.Height = BorderThickness + (tileSize + BorderThickness) * (rows - board.FinishRow - 1);
-                rect.Fill = borderFill;
+                rect = new()
+                {
+                    Width = BorderThickness,
+                    Height = BorderThickness + (tileSize + BorderThickness) * (rows - Board.FinishRow - 1),
+                    Fill = borderFill
+                };
                 SetLeft(rect, (margin + tileSize) * columns);
-                SetTop(rect, (margin + tileSize) * (rows - board.FinishRow - 1));
+                SetTop(rect, (margin + tileSize) * (rows - Board.FinishRow - 1));
                 Children.Add(rect);
             }
         }
 
         private void DrawCars()
         {
-            for(int i = 0; i < board.Cars.Length; i++)
+            for(int i = 0; i < Board!.Cars.Length; i++)
             {
-                Car car = board.Cars[i];
+                Car car = Board.Cars[i];
 
                 CarRectangle rect;
                 if(car.Orientation == Models.Orientation.Horizontal)
@@ -137,7 +174,7 @@ namespace Traffic.ViewModels.BoardObjects
 
             int column = (int)((x - 1) / (margin + tileSize));
             int row = (int)(y / (margin + tileSize));
-            return board.IsAvailableForCar(column, row, car);
+            return Board!.IsAvailableForCar(column, row, car);
         }
 
         public bool IsXValid(double x)
@@ -157,7 +194,7 @@ namespace Traffic.ViewModels.BoardObjects
 
         public void Save()
         {
-            LevelMenager.SerializeBoard(board);
+            LevelMenager.SerializeBoard(Board!);
         }
     }
 }
