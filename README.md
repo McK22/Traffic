@@ -6,3 +6,5 @@ After the start of the game you will see the list of available levels. It will b
 When the levels are created, you can select one of them and cick the 'Start level' button.
 
 All of your created levels will be automatically saved and you can play them next time.
+
+You can find some screenshots of the gameplay in Screenshots.md
