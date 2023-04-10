@@ -7,4 +7,4 @@ When the levels are created, you can select one of them and cick the 'Start leve
 
 All of your created levels will be automatically saved and you can play them next time.
 
-You can find some screenshots of the gameplay in Screenshots.md
+You can find some screenshots of the gameplay in Screenshots.md.
